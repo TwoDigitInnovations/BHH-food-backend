@@ -1,0 +1,12 @@
+{
+    "database": {
+        "url": "mongodb+srv://grocerypickup:grocerypickupkaty123456@cluster0.7s16v.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+    },
+    "jwt": {
+        "secretOrKey": "PROD_SECRET",
+        "issuer": "service",
+        "audience": "service.in",
+        "expiresIn": "30d",
+        "algorithm": "HS256"
+    }
+}
