@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "start": "pm2 start server.js -i max -f",
+    "start": "pm2 start server.js -i max -f --name 'bhh-food'",
     "kill": "pm2 kill",
     "logs": "pm2 log",
     "restart": "pm2 restart all",
