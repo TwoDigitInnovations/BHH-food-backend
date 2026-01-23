@@ -26,35 +26,58 @@ const {
 
 // Helper function to filter product data based on user authentication
 const filterProductData = async (products, req) => {
+  console.log("=== filterProductData Debug ===");
   let user = null;
   
   // Check if Authorization header exists and extract user info manually
   const authHeader = req.headers.authorization;
+  console.log("Auth header:", authHeader);
   
   if (authHeader && authHeader.startsWith('jwt ')) {
     try {
       const token = authHeader.substring(4); // Remove 'jwt ' prefix
       const jwt = require('jsonwebtoken');
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const decoded = jwt.verify(token, process.env.SECRET);
+      console.log("Decoded JWT:", decoded);
       
       if (decoded && decoded.id) {
         user = await User.findById(decoded.id).lean();
+        console.log("Found user:", {
+          id: user?._id,
+          documentVerified: user?.documentVerified,
+          type: user?.type
+        });
+      } else if (decoded && decoded.user && decoded.user.id) {
+        // Handle different JWT structure
+        user = await User.findById(decoded.user.id).lean();
+        console.log("Found user (alt structure):", {
+          id: user?._id,
+          documentVerified: user?.documentVerified,
+          type: user?.type
+        });
       }
     } catch (error) {
+      console.log("JWT verification error:", error.message);
       // Token invalid or expired, treat as unauthenticated
       user = null;
     }
+  } else {
+    console.log("No valid auth header found");
   }
 
   // If user is not logged in or document not verified, remove price_slot
-  const shouldShowPrices = user && user.documentVerified === true;
+  // Exception: Admin and Employee users should always see prices
+  const shouldShowPrices = user && (user.documentVerified === true || user.type === "ADMIN" || user.type === "EMPLOYEE");
+  console.log("Should show prices:", shouldShowPrices);
 
   return products.map(product => {
     if (!shouldShowPrices) {
+      console.log("Removing price_slot from product:", product.name);
       // Remove price_slot if user is not authenticated or document not verified
       const { price_slot, ...productWithoutPrices } = product;
       return productWithoutPrices;
     }
+    console.log("Keeping price_slot for product:", product.name);
     return product;
   });
 };
@@ -269,6 +292,11 @@ module.exports = {
 
   getProductByslug: async (req, res) => {
     try {
+      console.log("=== getProductByslug Debug ===");
+      console.log("Request params:", req.params);
+      console.log("Request query:", req.query);
+      console.log("Authorization header:", req.headers.authorization);
+
       let product = await Product.findOne({
         slug: req?.params?.id,
         status: "verified",
@@ -277,6 +305,8 @@ module.exports = {
       if (!product) {
         return response.error(res, "Product not found or not verified");
       }
+
+      console.log("Raw product price_slot:", product.price_slot);
 
       let reviews = await Review.find({ product: product._id })
         .populate("posted_by", "user_first_name")
@@ -300,11 +330,24 @@ module.exports = {
         favourite: favourite ? true : false,
       };
 
+      console.log("Product before filtering:", {
+        name: d.name,
+        price_slot: d.price_slot,
+        hasAuth: !!req.headers.authorization
+      });
+
       // Filter product data based on user authentication and document verification
       const [filteredProduct] = await filterProductData([d], req);
 
+      console.log("Product after filtering:", {
+        name: filteredProduct.name,
+        price_slot: filteredProduct.price_slot,
+        hasPriceSlot: !!filteredProduct.price_slot
+      });
+
       return response.ok(res, filteredProduct);
     } catch (error) {
+      console.error("getProductByslug error:", error);
       return response.error(res, error);
     }
   },

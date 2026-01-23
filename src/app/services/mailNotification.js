@@ -1,4 +1,5 @@
 const nodemailer = require("nodemailer");
+const { sendMailWithSubjectViaSendgrid } = require("./sendgrid");
 
 const transporter = nodemailer.createTransport({
   service: "gmail",
@@ -9,19 +10,25 @@ const transporter = nodemailer.createTransport({
 });
 
 const sendMail = async (to, subject, html) => {
-  return new Promise((resolve, reject) => {
-    const mailConfigurations = {
-      from: `Bach Hoa Houston <${process.env.MAIL_USER}>`,
-      to,
-      subject,
-      html,
-    };
+ 
+  try {
+    return await sendMailWithSubjectViaSendgrid([to], subject, html);
+  } catch (sendgridError) {
+    console.log("SendGrid failed, using Gmail SMTP fallback:", sendgridError.message);
     
-    transporter.sendMail(mailConfigurations, function (error, info) {
-      if (error) return reject(error);
-      return resolve(info);
+    return new Promise((resolve, reject) => {
+      const mailConfigurations = {
+        from: `Bach Hoa Houston <${process.env.MAIL_USER}>`,
+        to,
+        subject,
+        html,
+      };
+      transporter.sendMail(mailConfigurations, function (error, info) {
+        if (error) return reject(error);
+        return resolve(info);
+      });
     });
-  });
+  }
 };
 
 module.exports = {

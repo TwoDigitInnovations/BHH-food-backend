@@ -146,6 +146,24 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    businessType: {
+      type: String,
+      enum: ["wholesale", "retail", "foodservice"],
+    },
+    legalBusinessName: {
+      type: String,
+    },
+    resellerPermit: {
+      type: String,
+    },
+    paymentMethod: {
+      type: Boolean,
+      default: false,
+    },
+    termsAgreement: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,

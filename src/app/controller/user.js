@@ -182,7 +182,7 @@ module.exports = {
       }
 
       // Check if document is uploaded
-      if (!req.file) {
+      if (!req.files || !req.files.document) {
         return response.badReq(res, { message: "Document verification is required." });
       }
 
@@ -214,9 +214,17 @@ module.exports = {
         let userEmail = await encryptData(payload?.email);
         let userPhone = await encryptData(payload?.number);
         
-        // Get document URL from uploaded file and encrypt it
-        const documentUrl = req.file ? `${process.env.ASSET_ROOT}/${req.file.key}` : null;
+        // Handle document file (required)
+        const documentUrl = req.files.document ? `${process.env.ASSET_ROOT}/${req.files.document[0].key}` : null;
         const encryptedDocumentUrl = documentUrl ? await encryptData(documentUrl) : null;
+        
+        // Handle reseller permit file (optional)
+        let resellerPermitUrl = null;
+        let encryptedResellerPermitUrl = null;
+        if (req.files && req.files.resellerPermit) {
+          resellerPermitUrl = `${process.env.ASSET_ROOT}/${req.files.resellerPermit[0].key}`;
+          encryptedResellerPermitUrl = await encryptData(resellerPermitUrl);
+        }
         
         let user = new User({
           // username: payload?.username,
@@ -230,7 +238,12 @@ module.exports = {
           user_last_name: await encryptData(payload?.lastname),
           user_phone: userPhone,
           document: encryptedDocumentUrl,
-          documentVerified: false // Admin will verify later
+          documentVerified: false,
+          businessType: payload?.businessType,
+          legalBusinessName: payload?.legalBusinessName ? await encryptData(payload?.legalBusinessName) : null,
+          resellerPermit: encryptedResellerPermitUrl,
+          paymentMethod: payload?.paymentMethod === 'true' || payload?.paymentMethod === true,
+          termsAgreement: payload?.termsAgreement === 'true' || payload?.termsAgreement === true
         });
 
         if (payload?.type === "DRIVER") {
@@ -607,6 +620,7 @@ module.exports = {
       decryptedUsers = decryptedUsers.map((user, index) => ({
         ...user,
         document: user.document ? decryptValue(user.document) : null,
+        resellerPermit: user.resellerPermit ? decryptValue(user.resellerPermit) : null,
         indexNo: skip + index + 1
       }));
 
@@ -652,6 +666,7 @@ module.exports = {
       decryptedUsers = decryptedUsers.map((user, index) => ({
         ...user,
         document: user.document ? decryptValue(user.document) : null,
+        resellerPermit: user.resellerPermit ? decryptValue(user.resellerPermit) : null,
         indexNo: skip + index + 1
       }));
 

@@ -31,7 +31,10 @@ const notifications = require("../../app/controller/notifications");
 router.post("/login", user.login);
 router.post("/loginwithOtp", user.loginwithOtp);
 router.post("/verifyOTPForLogin", user.verifyOTPForLogin);
-router.post("/signUp", upload.single("document"), user.signUp);
+router.post("/signUp", upload.fields([
+  { name: "document", maxCount: 1 },
+  { name: "resellerPermit", maxCount: 1 }
+]), user.signUp);
 router.post("/sendOTP", user.sendOTP);
 router.post("/verifyOTP", user.verifyOTP);
 router.post("/changePassword", user.changePassword);
