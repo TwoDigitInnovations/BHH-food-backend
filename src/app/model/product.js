@@ -114,6 +114,19 @@ const productchema = new mongoose.Schema(
     Quantity: {
       type: Number,
     },
+    // New inventory fields
+    warehouse: {
+      type: String,
+    },
+    bin: {
+      type: String,
+    },
+    batchNumber: {
+      type: String,
+    },
+    itemUOM: {
+      type: String,
+    },
     ReturnPolicy: {
       type: String,
     },

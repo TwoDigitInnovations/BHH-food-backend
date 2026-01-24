@@ -42,9 +42,17 @@ const pdfController = {
       const margin = 30;
       const contentWidth = pageWidth - (margin * 2);
 
-      // Header Section
-      doc.fontSize(16).font('Helvetica-Bold').fillColor('black');
-      doc.text('BHH', margin, 40);
+      const path = require('path');
+      
+      // Header Section with Logo
+      const logoPath = path.join(__dirname, '../../public', 'newlogo.jpeg');
+      try {
+        doc.image(logoPath, margin, 30, { width: 80, height: 40 });
+      } catch (logoError) {
+        // Fallback to text if logo not found
+        doc.fontSize(16).font('Helvetica-Bold').fillColor('black');
+        doc.text('BHH', margin, 40);
+      }
 
       // Pick List header (right side) - moved up
       doc.fontSize(14).font('Helvetica-Bold').text('Page 1 of 1', pageWidth - 100, 50);
@@ -96,10 +104,10 @@ const pdfController = {
       doc.text('PICKED', margin + 60, tableStartY + 5);
       doc.text('REL QTY', margin + 110, tableStartY + 5);
       doc.text('WH', margin + 160, tableStartY + 5);
-      doc.text('BIN', margin + 180, tableStartY + 5);
-      doc.text('ITEM - UOM', margin + 210, tableStartY + 5);
-      doc.text('PRICE', margin + 350, tableStartY + 5);  // Moved left
-      doc.text('BATCH#', margin + 400, tableStartY + 5); // Moved left
+      doc.text('BIN', margin + 200, tableStartY + 5);  // Added more gap from WH
+      doc.text('ITEM - UOM', margin + 250, tableStartY + 5);
+      doc.text('PRICE', margin + 370, tableStartY + 5);  // Moved slightly right
+      doc.text('BATCH#', margin + 430, tableStartY + 5); // Moved slightly right
 
       // NO vertical lines at all - completely removed
 
@@ -119,34 +127,48 @@ const pdfController = {
 
         // NO vertical lines for product rows - removed for cleaner look
 
-        // Handwritten style checkboxes and quantities
-        doc.fontSize(12).font('Helvetica').fillColor('red');
-        doc.text((index + 1).toString(), margin + 15, currentY + 5); // Serial number instead of checkmark
-        doc.text(item.qty.toString(), margin + 70, currentY + 5); // Picked quantity
+        // CHECKED and PICKED fields - keep blank as requested
+        doc.fontSize(8).font('Helvetica').fillColor('black');
+        // No text for CHECKED column (blank)
+        // No text for PICKED column (blank)
 
-        // Product details
+        // Product details with dynamic data
         doc.fontSize(8).font('Helvetica').fillColor('black');
         doc.text(item.qty.toString(), margin + 120, currentY + 5); // REL QTY
-        doc.text('CASE', margin + 165, currentY + 5); // WH
-        doc.text(`01-S-D-${index + 1}`, margin + 185, currentY + 5); // BIN
+        
+        // Dynamic WH (warehouse) from product
+        const warehouse = product?.warehouse || 'WH01';
+        doc.text(warehouse, margin + 160, currentY + 5, { 
+          width: 30, 
+          align: 'left' 
+        });
+        
+        // Dynamic BIN from product  
+        const bin = product?.bin || `BIN-${index + 1}`;
+        doc.text(bin, margin + 200, currentY + 5, { 
+          width: 40, 
+          align: 'left' 
+        });
 
-        // Product name and details (with proper encoding fix)
+        // Product name and UOM (Item - UOM)
         const productName = product?.name || product?.vietnamiesName || 'Product Name';
+        const itemUOM = product?.itemUOM || 'EACH';
         
         // Clean product name - remove any encoding issues
         const cleanProductName = productName.toString().replace(/[^\x00-\x7F]/g, "").trim() || 'Product Name';
         
-        // Show only product name in ITEM-UOM column
-        doc.fontSize(8).text(cleanProductName, margin + 215, currentY + 5, {
-          width: 130, // Reduced width to make space for price/batch
+        // Show product name with UOM in ITEM-UOM column
+        doc.fontSize(8).text(`${cleanProductName} - ${itemUOM}`, margin + 255, currentY + 5, {
+          width: 160, // Increased width for better product name display
           align: 'left'
         });
 
-        // Price (moved left)
-        doc.text(`$${item.price || item.total}`, margin + 350, currentY + 5);
+        // Price (moved slightly right)
+        doc.text(`$${item.price || item.total}`, margin + 375, currentY + 5);
 
-        // Batch number (moved left)
-        doc.text(`${order.orderId || order._id.toString().slice(-8)}`, margin + 400, currentY + 5);
+        // Batch number (dynamic from product or order)
+        const batchNumber = product?.batchNumber || order.orderId || order._id.toString().slice(-8);
+        doc.text(batchNumber, margin + 435, currentY + 5);
 
         currentY += rowHeight;
       });
