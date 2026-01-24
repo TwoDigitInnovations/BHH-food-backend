@@ -148,17 +148,13 @@ const userSchema = new mongoose.Schema(
     },
     businessType: {
       type: String,
-      enum: ["wholesale", "retail", "foodservice"],
+      enum: ["wholesale", "retail", "foodservice", "restaurant", "onlinefoodseller", "mealprep", "homebased"],
     },
     legalBusinessName: {
       type: String,
     },
     resellerPermit: {
       type: String,
-    },
-    paymentMethod: {
-      type: Boolean,
-      default: false,
     },
     termsAgreement: {
       type: Boolean,

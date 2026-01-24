@@ -181,10 +181,10 @@ module.exports = {
         return response.badReq(res, { message: "Email required." });
       }
 
-      // Check if document is uploaded
-      if (!req.files || !req.files.document) {
-        return response.badReq(res, { message: "Document verification is required." });
-      }
+      // Document verification is no longer required
+      // if (!req.files || !req.files.document) {
+      //   return response.badReq(res, { message: "Document verification is required." });
+      // }
 
       let user2 = await User.findOne({
         user_email_hash: mail,
@@ -214,9 +214,13 @@ module.exports = {
         let userEmail = await encryptData(payload?.email);
         let userPhone = await encryptData(payload?.number);
         
-        // Handle document file (required)
-        const documentUrl = req.files.document ? `${process.env.ASSET_ROOT}/${req.files.document[0].key}` : null;
-        const encryptedDocumentUrl = documentUrl ? await encryptData(documentUrl) : null;
+        // Handle document file (optional now)
+        let documentUrl = null;
+        let encryptedDocumentUrl = null;
+        if (req.files && req.files.document) {
+          documentUrl = `${process.env.ASSET_ROOT}/${req.files.document[0].key}`;
+          encryptedDocumentUrl = await encryptData(documentUrl);
+        }
         
         // Handle reseller permit file (optional)
         let resellerPermitUrl = null;
@@ -239,10 +243,10 @@ module.exports = {
           user_phone: userPhone,
           document: encryptedDocumentUrl,
           documentVerified: false,
-          businessType: payload?.businessType,
-          legalBusinessName: payload?.legalBusinessName ? await encryptData(payload?.legalBusinessName) : null,
-          resellerPermit: encryptedResellerPermitUrl,
-          paymentMethod: payload?.paymentMethod === 'true' || payload?.paymentMethod === true,
+          isBusiness: payload?.isBusinessAccount === 'true' || payload?.isBusinessAccount === true,
+          businessType: (payload?.isBusinessAccount === 'true' || payload?.isBusinessAccount === true) ? payload?.businessType : null,
+          legalBusinessName: (payload?.isBusinessAccount === 'true' || payload?.isBusinessAccount === true) && payload?.legalBusinessName ? await encryptData(payload?.legalBusinessName) : null,
+          resellerPermit: (payload?.isBusinessAccount === 'true' || payload?.isBusinessAccount === true) ? encryptedResellerPermitUrl : null,
           termsAgreement: payload?.termsAgreement === 'true' || payload?.termsAgreement === true
         });
 
@@ -599,8 +603,6 @@ module.exports = {
       const skip = (page - 1) * limit;
 
       const filter = {
-        document: { $exists: true, $ne: null },
-        documentVerified: false,
         type: "USER"
       };
 
@@ -621,6 +623,7 @@ module.exports = {
         ...user,
         document: user.document ? decryptValue(user.document) : null,
         resellerPermit: user.resellerPermit ? decryptValue(user.resellerPermit) : null,
+        legalBusinessName: user.legalBusinessName ? decryptValue(user.legalBusinessName) : null,
         indexNo: skip + index + 1
       }));
 
@@ -646,7 +649,6 @@ module.exports = {
       const skip = (page - 1) * limit;
 
       const filter = {
-        document: { $exists: true, $ne: null },
         type: "USER"
       };
 
@@ -667,6 +669,7 @@ module.exports = {
         ...user,
         document: user.document ? decryptValue(user.document) : null,
         resellerPermit: user.resellerPermit ? decryptValue(user.resellerPermit) : null,
+        legalBusinessName: user.legalBusinessName ? decryptValue(user.legalBusinessName) : null,
         indexNo: skip + index + 1
       }));
 

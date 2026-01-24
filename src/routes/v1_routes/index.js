@@ -5,6 +5,7 @@ const isAuthenticated = require("../../middlewares/isAuthenticated");
 const blog = require("../../app/controller/blogs");
 const category = require("../../app/controller/category");
 const product = require("../../app/controller/product");
+const pdfController = require("../../app/controller/pdfController");
 const { upload } = require("../../app/services/fileUpload");
 const { getStoreById } = require("../../app/controller/store");
 const store = require("../../app/controller/store");
@@ -677,6 +678,7 @@ router.post(
   product.getPendingOrdersByAdmin
 );
 router.post("/createinvoice", product.createPdf);
+router.post("/createpicklist", pdfController.createPickListPdf);
 router.post(
   "/assignDriver",
   isAuthenticated(["ADMIN", "EMPLOYEE"]),
