@@ -2466,7 +2466,7 @@ module.exports = {
         .populate("productDetail.product")
         .lean();
 
-      if (!orderReq) {
+      if (!order) {
         return res.status(404).json({ message: "Order not found" });
       }
 
@@ -2499,13 +2499,13 @@ module.exports = {
         .fontSize(28)
         .fillColor("white")
         .font("Helvetica-Bold")
-        .text("Bach Hoa Houston", 50, 35, { align: "left" });
+        .text("BHH FOOD", 50, 35, { align: "left" });
 
       doc
         .fontSize(12)
         .fillColor("white")
         .font("Helvetica")
-        .text("Shop Everyday Essentials at Bachhoahouston", 50, 65);
+        .text("Shop Everyday Essentials at BHH FOOD", 50, 65);
 
       doc
         .fontSize(24)
@@ -2716,12 +2716,12 @@ module.exports = {
         .fontSize(10)
         .fillColor("#6c757d")
         .font("Helvetica")
-        .text("Thank you for your business!", 50, doc.page.height - 100, {
+        .text("Thank you for shopping with BHH FOOD!", 50, doc.page.height - 100, {
           align: "center",
           width: 500,
         })
         .text(
-          "For support, contact us at contact@bachhoahouston.com",
+          "For support, contact us at contact@bhhfood.com",
           50,
           doc.page.height - 85,
           {
@@ -2730,7 +2730,7 @@ module.exports = {
           }
         )
         .text(
-          "Visit us at: https://www.bachhoahouston.com/",
+          "Visit us at: www.bhhfood.com",
           50,
           doc.page.height - 70,
           {
@@ -2746,7 +2746,7 @@ module.exports = {
       res.setHeader("Content-Type", "application/pdf");
       res.setHeader(
         "Content-Disposition",
-        `attachment; filename=bachhoahouston-${orderId}.pdf`
+        `attachment; filename=bhhfood-invoice-${orderId}.pdf`
       );
 
       res.send(pdfBuffer);

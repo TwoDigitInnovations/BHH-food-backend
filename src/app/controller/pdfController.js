@@ -5,7 +5,7 @@ const { decryptObject } = require("../../middlewares/codeDecript");
 const pdfController = {
   createPickListPdf: async (req, res) => {
     try {
-      const { orderId, lang } = req.body;
+      const { orderId } = req.body;
 
       if (!orderId) {
         return res.status(400).json({ message: "Order ID is required" });
@@ -45,7 +45,7 @@ const pdfController = {
       const path = require('path');
       
       // Header Section with Logo
-      const logoPath = path.join(__dirname, '../../public', 'newlogo.jpeg');
+      const logoPath = path.join(__dirname, '../../public', 'newwlogo.png');
       try {
         doc.image(logoPath, margin, 30, { width: 80, height: 40 });
       } catch (logoError) {
@@ -65,6 +65,26 @@ const pdfController = {
       doc.text(`Phone: ${user.number || 'N/A'}`, margin, 115);
       doc.text(`Email: ${user.email || 'N/A'}`, margin, 130);
 
+      // Add barcode after customer details
+      const barcodeY = 150;
+      try {
+        const barcodeLib = require('bwip-js');
+        const barcodeBuffer = await barcodeLib.toBuffer({
+          bcid: 'code128',
+          text: order.orderId || order._id.toString(),
+          scale: 3,
+          height: 10,
+          includetext: true,
+          textxalign: 'center',
+          textsize: 10,
+          textyoffset: -2,
+        });
+        doc.image(barcodeBuffer, margin, barcodeY, { width: 200, height: 65 });
+      } catch (barcodeError) {
+        console.log('Barcode generation failed, using text fallback');
+        doc.fontSize(10).text(`Order ID: ${order.orderId || order._id.toString()}`, margin, barcodeY);
+      }
+
       // Pick status box (right side)
       const pickBoxX = pageWidth - 200;
       doc.rect(pickBoxX, 100, 150, 80).stroke();
@@ -81,18 +101,18 @@ const pdfController = {
       const currentDate = new Date().toLocaleDateString('en-US');
       doc.text(currentDate, dateBoxX + 5, 145);
 
-      // S.O.# section
+      // S.O.# section - moved down to accommodate barcode with proper spacing
       doc.fontSize(10).font('Helvetica');
-      doc.text(`S.O.# ${order.orderId || order._id.toString().slice(-8)}`, margin, 180);
-      doc.text('PO# BACH HOA HOUSTON', margin, 195);
-      doc.text('TX', margin, 210);
+      doc.text(`S.O.# ${order.orderId || order._id.toString().slice(-8)}`, margin, 230);
+      doc.text('PO# BACH HOA HOUSTON', margin, 245);
+      doc.text('TX', margin, 260);
 
       // Customer pickup info
       doc.fontSize(8);
-      doc.text(`Remarks: From Order # ${order.orderId || order._id.toString().slice(-8)} CUSTOMER PICK UP FRIDAY`, margin, 240);
+      doc.text(`Remarks: From Order # ${order.orderId || order._id.toString().slice(-8)} CUSTOMER PICK UP FRIDAY`, margin, 285);
 
       // Table headers
-      const tableStartY = 270;
+      const tableStartY = 315;
       doc.fontSize(8).font('Helvetica-Bold');
       
       // Draw table header background (no borders)
@@ -103,13 +123,11 @@ const pdfController = {
       doc.text('CHECKED', margin + 5, tableStartY + 5);
       doc.text('PICKED', margin + 60, tableStartY + 5);
       doc.text('REL QTY', margin + 110, tableStartY + 5);
-      doc.text('WH', margin + 160, tableStartY + 5);
-      doc.text('BIN', margin + 200, tableStartY + 5);  // Added more gap from WH
-      doc.text('ITEM - UOM', margin + 250, tableStartY + 5);
-      doc.text('PRICE', margin + 370, tableStartY + 5);  // Moved slightly right
-      doc.text('BATCH#', margin + 430, tableStartY + 5); // Moved slightly right
-
-      // NO vertical lines at all - completely removed
+      doc.text('WH', margin + 190, tableStartY + 5);
+      doc.text('BIN', margin + 230, tableStartY + 5);
+      doc.text('ITEM - UOM', margin + 280, tableStartY + 5);
+      doc.text('PRICE', margin + 400, tableStartY + 5);
+      doc.text('BATCH#', margin + 460, tableStartY + 5);
 
       // Table rows
       let currentY = tableStartY + 25;
@@ -125,50 +143,58 @@ const pdfController = {
           doc.rect(margin, currentY - 5, contentWidth, rowHeight).fill('#f9f9f9');
         }
 
-        // NO vertical lines for product rows - removed for cleaner look
-
-        // CHECKED and PICKED fields - keep blank as requested
         doc.fontSize(8).font('Helvetica').fillColor('black');
-        // No text for CHECKED column (blank)
-        // No text for PICKED column (blank)
-
-        // Product details with dynamic data
-        doc.fontSize(8).font('Helvetica').fillColor('black');
-        doc.text(item.qty.toString(), margin + 120, currentY + 5); // REL QTY
+        
+        // REL QTY with UOM (quantity WITH unit) - moved slightly right
+        // Debug: Log product structure to find correct unit field
+        console.log('Product data:', {
+          itemUOM: product?.itemUOM,
+          unit: product?.unit,
+          price_slot_unit: product?.price_slot?.[0]?.unit,
+          varients_unit: product?.varients?.[0]?.unit,
+          productName: product?.name
+        });
+        
+        // Try to get unit from price_slot first, then varients, then itemUOM
+        const itemUOM = product?.price_slot?.[0]?.unit || product?.varients?.[0]?.unit || product?.itemUOM || 'EACH';
+        doc.text(`${item.qty} ${itemUOM}`, margin + 120, currentY + 5, {
+          width: 70,
+          align: 'left'
+        });
         
         // Dynamic WH (warehouse) from product
         const warehouse = product?.warehouse || 'WH01';
-        doc.text(warehouse, margin + 160, currentY + 5, { 
+        doc.text(warehouse, margin + 190, currentY + 5, { 
           width: 30, 
           align: 'left' 
         });
         
         // Dynamic BIN from product  
         const bin = product?.bin || `BIN-${index + 1}`;
-        doc.text(bin, margin + 200, currentY + 5, { 
+        doc.text(bin, margin + 230, currentY + 5, { 
           width: 40, 
           align: 'left' 
         });
 
-        // Product name and UOM (Item - UOM)
+        // Product name WITH itemUOM in ITEM - UOM column
         const productName = product?.name || product?.vietnamiesName || 'Product Name';
-        const itemUOM = product?.itemUOM || 'EACH';
-        
-        // Clean product name - remove any encoding issues
         const cleanProductName = productName.toString().replace(/[^\x00-\x7F]/g, "").trim() || 'Product Name';
+        const productItemUOM = product?.itemUOM || '';
         
-        // Show product name with UOM in ITEM-UOM column
-        doc.fontSize(8).text(`${cleanProductName} - ${itemUOM}`, margin + 255, currentY + 5, {
-          width: 160, // Increased width for better product name display
+        // Combine product name with itemUOM if itemUOM exists
+        const displayText = productItemUOM ? `${cleanProductName} - ${productItemUOM}` : cleanProductName;
+        
+        doc.fontSize(8).text(displayText, margin + 280, currentY + 5, {
+          width: 110,
           align: 'left'
         });
 
-        // Price (moved slightly right)
-        doc.text(`$${item.price || item.total}`, margin + 375, currentY + 5);
+        // Price
+        doc.text(`${item.price || item.total}`, margin + 400, currentY + 5);
 
-        // Batch number (dynamic from product or order)
+        // Batch number
         const batchNumber = product?.batchNumber || order.orderId || order._id.toString().slice(-8);
-        doc.text(batchNumber, margin + 435, currentY + 5);
+        doc.text(batchNumber, margin + 460, currentY + 5);
 
         currentY += rowHeight;
       });
@@ -187,12 +213,12 @@ const pdfController = {
 
       // Order totals (right side)
       const totalsX = pageWidth - 200;
-      doc.text(`Subtotal: $${order.total || '0.00'}`, totalsX, currentY);
-      doc.text(`Delivery Fee: $${order.deliveryfee || '0.00'}`, totalsX, currentY + 15);
-      doc.text(`Tip: $${order.Deliverytip || '0.00'}`, totalsX, currentY + 30);
-      doc.text(`Discount: $${order.discount || '0.00'}`, totalsX, currentY + 45);
+      doc.text(`Subtotal: ${order.total || '0.00'}`, totalsX, currentY);
+      doc.text(`Delivery Fee: ${order.deliveryfee || '0.00'}`, totalsX, currentY + 15);
+      doc.text(`Tip: ${order.Deliverytip || '0.00'}`, totalsX, currentY + 30);
+      doc.text(`Discount: ${order.discount || '0.00'}`, totalsX, currentY + 45);
       doc.fontSize(12).font('Helvetica-Bold');
-      doc.text(`Total: $${order.total || '0.00'}`, totalsX, currentY + 60);
+      doc.text(`Total: ${order.total || '0.00'}`, totalsX, currentY + 60);
 
       doc.end();
 

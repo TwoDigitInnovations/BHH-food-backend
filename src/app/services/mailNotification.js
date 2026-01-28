@@ -40,23 +40,32 @@ module.exports = {
       <div style="font-family: Arial, sans-serif; background-color: #f9f9f9; padding: 20px;">
         <div style="max-width: 600px; margin: auto; background: #fff; border-radius: 8px; padding: 20px; border: 1px solid #e0e0e0;">
           <div style="text-align: center; margin-bottom: 20px;">
-            <h2 style="color: #F38529;">Welcome to Bach Hoa Houston!</h2>
-            <p style="color: #777; font-size: 14px;">We're glad to have you on board</p>
+            <h2 style="color: #F38529; margin-bottom: 5px;">Welcome to BHH Food!</h2>
+            <p style="color: #777; font-size: 14px; margin: 0;">We're glad to have you with us.</p>
           </div>
 
-        <p>Dear ${username.username}${username?.lastname ? " " + username.lastname : ""},</p>
+          <p>Dear ${username.username}${username?.lastname ? " " + username.lastname : ""},</p>
 
-          <p>Thank you for creating your account at <strong>Bach Hoa Houston</strong>. We’re excited to be your trusted destination for quality products and service.</p>
+          <p>Thank you for submitting your application to BHH Food.</p>
+          
+          <p>We're happy to let you know that your application has been successfully received and is currently under review.</p>
 
-          <p><strong>Your registered email:</strong> ${username?.email}</p>
-
-          <div style="background-color: #fef1e8; padding: 15px; border-left: 4px solid #F38529; margin: 20px 0; border-radius: 3px;">
-            <p style="margin: 0;">Enjoy a seamless shopping experience with our commitment to quality and customer satisfaction.</p>
+          <div style="margin-top: 20px; padding: 15px; background-color: #fef1e8; border-left: 4px solid #F38529; border-radius: 3px;">
+            <p style="margin: 0; font-weight: bold;">What happens next?</p>
+            <ul style="margin: 10px 0 0; padding-left: 20px; line-height: 1.8;">
+              <li>Our team will review your application shortly.</li>
+              <li>Once your account is approved, you will receive a confirmation email.</li>
+              <li>After approval, you'll be able to log in using the username and password you created during registration.</li>
+            </ul>
           </div>
 
-          <p>If you have any questions, feel free to reach out to us. We're here to help!</p>
+          <p style="margin-top: 20px;"><strong>Your registered email:</strong> ${username?.email}</p>
 
-          <p style="margin-top: 20px;">Best regards,<br/><strong style="color: #F38529;">The Bach Hoa Houston Team</strong></p>
+          <p>If you have any questions while your application is under review, feel free to reply to this email—we're here to help.</p>
+
+          <p style="margin-top: 30px;">Thank you for choosing BHH Food. We look forward to serving you soon!</p>
+          
+          <p>Warm regards,<br/><strong style="color: #F38529;">The BHH FOOD Team</strong></p>
 
           <div style="margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px; font-size: 12px; color: #777; text-align: center;">
             <p>This is a system-generated email. Please do not reply to this message.</p>
@@ -65,7 +74,7 @@ module.exports = {
       </div>
     `;
 
-      await sendMail(username.email, "Welcome to Bach Hoa Houston!", html);
+      await sendMail(username.email, "Welcome to BHH Food!", html);
     } catch (err) {
       console.error("Error sending welcome email:", err);
       throw new Error("Failed to send welcome email");
@@ -838,8 +847,8 @@ module.exports = {
             Phone: 832-230-9288</p>
           </div>
 
-          <p style="margin-top: 30px;">Thank you for choosing Bach Hoa Houston!</p>
-          <p><strong style="color: #F38529;">Bach Hoa Houston Team</strong></p>
+          <p style="margin-top: 30px;">Thank you for choosing BHH Food!</p>
+          <p><strong style="color: #F38529;">The BHH Food Team</strong></p>
         </div>
       </div>
     `;
