@@ -2495,17 +2495,20 @@ module.exports = {
       // Header with modern design
       drawRoundedRect(0, 0, doc.page.width, 100, 0, "#f38529");
 
+      // Add clickable link annotation for the header area
+      doc.link(50, 35, 300, 30, "https://www.bhhfood.com");
+
       doc
         .fontSize(28)
         .fillColor("white")
         .font("Helvetica-Bold")
-        .text("BHH FOOD", 50, 35, { align: "left" });
+        .text("BHH FOOD", 50, 35, { align: "left", link: "https://www.bhhfood.com" });
 
       doc
         .fontSize(12)
         .fillColor("white")
         .font("Helvetica")
-        .text("Shop Everyday Essentials at BHH FOOD", 50, 65);
+        .text("Shop Everyday Essentials at BHH FOOD | www.bhhfood.com", 50, 65, { link: "https://www.bhhfood.com" });
 
       doc
         .fontSize(24)
@@ -2545,12 +2548,32 @@ module.exports = {
 
       doc.text(orderType, 450, 145);
 
-      // Customer information section
+      // Add barcode before BILL TO section
+      const barcodeY = 150;
+      try {
+        const barcodeLib = require('bwip-js');
+        const barcodeBuffer = await barcodeLib.toBuffer({
+          bcid: 'code128',
+          text: order.orderId || order._id.toString(),
+          scale: 3,
+          height: 10,
+          includetext: true,
+          textxalign: 'center',
+          textsize: 10,
+          textyoffset: -2,
+        });
+        doc.image(barcodeBuffer, 50, barcodeY, { width: 200, height: 65 });
+      } catch (barcodeError) {
+        console.log('Barcode generation failed, using text fallback');
+        doc.fontSize(10).fillColor("#2c3e50").text(`Order ID: ${order.orderId || order._id.toString()}`, 50, barcodeY);
+      }
+
+      // Customer information section (moved down to accommodate barcode)
       doc
         .fontSize(14)
         .fillColor("#f38529")
         .font("Helvetica-Bold")
-        .text("BILL TO:", 50, 180);
+        .text("BILL TO:", 50, 230); // Moved down from 180 to 230
 
       doc
         .fontSize(12)
@@ -2559,10 +2582,10 @@ module.exports = {
         .text(
           order.user.username + " " + (order?.user?.lastname || ""),
           50,
-          200
+          250 // Moved down from 200 to 250
         )
-        .text(order.user.email, 50, 215)
-        .text(order.user.number || "N/A", 50, 230);
+        .text(order.user.email, 50, 265) // Moved down from 215 to 265
+        .text(order.user.number || "N/A", 50, 280); // Moved down from 230 to 280
 
       // Delivery information
       if (order.Local_address) {
@@ -2570,20 +2593,20 @@ module.exports = {
           .fontSize(14)
           .fillColor("#f38529")
           .font("Helvetica-Bold")
-          .text("DELIVER TO:", 300, 180);
+          .text("DELIVER TO:", 300, 230); // Moved down from 180 to 230
 
         doc
           .fontSize(12)
           .fillColor("#2c3e50")
           .font("Helvetica")
-          .text(order.Local_address.address || "N/A", 300, 200)
+          .text(order.Local_address.address || "N/A", 300, 250) // Moved down from 200 to 250
           .text(
             `${order.Local_address.city || ""} ${order.Local_address.state || ""
             }`,
             300,
-            215
+            265 // Moved down from 215 to 265
           )
-          .text(order.Local_address.zipCode || "", 300, 230);
+          .text(order.Local_address.zipCode || "", 300, 280); // Moved down from 230 to 280
       }
 
       // Delivery date if available
@@ -2595,11 +2618,11 @@ module.exports = {
           .fontSize(12)
           .fillColor("#2c3e50")
           .font("Helvetica-Bold")
-          .text(`Pickup/Delivery Date: ${deliveryDate}`, 50, 260);
+          .text(`Pickup/Delivery Date: ${deliveryDate}`, 50, 310); // Moved down from 260 to 310
       }
 
       // Table header with modern styling
-      const tableTop = 300;
+      const tableTop = 340; // Adjusted position
       drawRoundedRect(50, tableTop, 500, 25, 3, "#f38529");
 
       doc
@@ -2660,11 +2683,11 @@ module.exports = {
       const totalsY = currentY + 20;
 
       // Draw summary background
-      drawRoundedRect(350, totalsY - 10, 200, 150, 5, "#f8f9fa");
+      drawRoundedRect(350, totalsY - 10, 200, 180, 5, "#f8f9fa"); // Increased height for service fee
       doc
         .strokeColor("#dee2e6")
         .lineWidth(1)
-        .roundedRect(350, totalsY - 10, 200, 150, 5)
+        .roundedRect(350, totalsY - 10, 200, 180, 5) // Increased height for service fee
         .stroke();
 
       doc
@@ -2691,9 +2714,15 @@ module.exports = {
 
       const discount = order.discount || 0;
 
+      // Add Service Fee
+      const serviceFee = order.serviceFee || 0;
       doc
-        .text("Discount:", 370, totalsY + 80)
-        .text(`-$${parseFloat(discount).toFixed(2)}`, 470, totalsY + 80);
+        .text("Service Fee:", 370, totalsY + 80)
+        .text(`$${parseFloat(serviceFee).toFixed(2)}`, 470, totalsY + 80);
+
+      doc
+        .text("Discount:", 370, totalsY + 100)
+        .text(`-$${parseFloat(discount).toFixed(2)}`, 470, totalsY + 100);
 
       const totalAmount =
         order.totalAmount !== undefined && order.totalAmount !== null
@@ -2701,15 +2730,16 @@ module.exports = {
           : Number(subtotal) +
           Number(tax) +
           Number(deliveryFee) +
-          Number(tip) -
+          Number(tip) +
+          Number(serviceFee) - // Include service fee in total calculation
           Number(discount);
 
       doc
         .fontSize(14)
         .fillColor("#f38529")
         .font("Helvetica-Bold")
-        .text("Total:", 370, totalsY + 110)
-        .text(`$${parseFloat(totalAmount).toFixed(2)}`, 470, totalsY + 110);
+        .text("Total:", 370, totalsY + 130) // Moved down to accommodate service fee
+        .text(`$${parseFloat(totalAmount).toFixed(2)}`, 470, totalsY + 130);
 
       // Footer
       doc

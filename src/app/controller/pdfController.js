@@ -42,31 +42,52 @@ const pdfController = {
       const margin = 30;
       const contentWidth = pageWidth - (margin * 2);
 
-      const path = require('path');
+      // Header Section - Remove logo and add BHH FOOD text
+      // Clear the entire header area first
+      doc.rect(0, 0, pageWidth, 120).fill('white');
       
-      // Header Section with Logo
-      const logoPath = path.join(__dirname, '../../public', 'newwlogo.png');
-      try {
-        doc.image(logoPath, margin, 30, { width: 80, height: 40 });
-      } catch (logoError) {
-        // Fallback to text if logo not found
-        doc.fontSize(16).font('Helvetica-Bold').fillColor('black');
-        doc.text('BHH', margin, 40);
-      }
+      // Add BHH FOOD header without background (like invoice design)
+      doc.fontSize(28).font('Helvetica-Bold').fillColor('#f38529');
+      doc.text('BHH FOOD', margin, 35);
+      
+      doc.fontSize(16).font('Helvetica').fillColor('#f38529');
+      doc.text('www.bhhfood.com', margin, 60);
 
-      // Pick List header (right side) - moved up
-      doc.fontSize(14).font('Helvetica-Bold').text('Page 1 of 1', pageWidth - 100, 50);
-      doc.text('PICK LIST', pageWidth - 100, 65);
-      doc.fontSize(10).font('Helvetica').text('Grocery', pageWidth - 100, 80);
+      // Pick List header (right side) with invoice-style box
+      const infoBoxX = pageWidth - 220;
+      const infoBoxY = 30;
+      
+      // Draw invoice info box (increased height)
+      doc.rect(infoBoxX, infoBoxY, 180, 140).stroke();
+      
+      doc.fontSize(12).font('Helvetica-Bold').fillColor('black');
+      doc.text('Page 1 of 1', infoBoxX + 10, infoBoxY + 10);
+      doc.text('PICK LIST', infoBoxX + 10, infoBoxY + 25);
+      doc.fontSize(10).font('Helvetica').text('Grocery', infoBoxX + 10, infoBoxY + 40);
+      
+      // Add order information in the box
+      doc.fontSize(9).font('Helvetica');
+      doc.text(`Invoice #: ${order.orderId || order._id.toString().slice(-8)}`, infoBoxX + 10, infoBoxY + 60);
+      doc.text(`Date: ${new Date(order.createdAt).toLocaleDateString('en-US')}`, infoBoxX + 10, infoBoxY + 75);
+      doc.text(`Time: ${new Date(order.createdAt).toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit'})}`, infoBoxX + 10, infoBoxY + 90);
+      doc.text(`Status: ${order.status || 'Pending'}`, infoBoxX + 10, infoBoxY + 105);
+      
+      // Determine order type
+      let orderType = "Store Pickup";
+      if (order.isLocalDelivery) orderType = "Local Delivery";
+      if (order.isShipmentDelivery) orderType = "Shipment Delivery";
+      if (order.isDriveUp) orderType = "Curbside Pickup";
+      
+      doc.text(`Order Type: ${orderType}`, infoBoxX + 10, infoBoxY + 120);
 
       // Customer details section (left side)
-      doc.fontSize(10).font('Helvetica');
-      doc.text(`Customer: ${user.username || 'Customer Name'}`, margin, 100);
-      doc.text(`Phone: ${user.number || 'N/A'}`, margin, 115);
-      doc.text(`Email: ${user.email || 'N/A'}`, margin, 130);
+      doc.fontSize(10).font('Helvetica').fillColor('black');
+      doc.text(`Customer: ${user.username || 'Customer Name'}`, margin, 90);
+      doc.text(`Phone: ${user.number || 'N/A'}`, margin, 105);
+      doc.text(`Email: ${user.email || 'N/A'}`, margin, 120);
 
       // Add barcode after customer details
-      const barcodeY = 150;
+      const barcodeY = 160;
       try {
         const barcodeLib = require('bwip-js');
         const barcodeBuffer = await barcodeLib.toBuffer({
@@ -85,34 +106,18 @@ const pdfController = {
         doc.fontSize(10).text(`Order ID: ${order.orderId || order._id.toString()}`, margin, barcodeY);
       }
 
-      // Pick status box (right side)
-      const pickBoxX = pageWidth - 200;
-      doc.rect(pickBoxX, 100, 150, 80).stroke();
-      doc.fontSize(8).text('PICK STATUS', pickBoxX + 5, 105);
-      doc.text('Released', pickBoxX + 5, 120);
-      doc.text('PRINT STATUS', pickBoxX + 5, 135);
-      doc.text('ORIGINAL', pickBoxX + 5, 150);
-      doc.text('PICKED BY', pickBoxX + 5, 165);
-
-      // Date box (next to PRINT STATUS)
-      const dateBoxX = pickBoxX + 80;
-      doc.rect(dateBoxX, 130, 60, 25).stroke();
-      doc.fontSize(8).text('Friday', dateBoxX + 5, 135);
-      const currentDate = new Date().toLocaleDateString('en-US');
-      doc.text(currentDate, dateBoxX + 5, 145);
-
       // S.O.# section - moved down to accommodate barcode with proper spacing
       doc.fontSize(10).font('Helvetica');
-      doc.text(`S.O.# ${order.orderId || order._id.toString().slice(-8)}`, margin, 230);
-      doc.text('PO# BACH HOA HOUSTON', margin, 245);
-      doc.text('TX', margin, 260);
+      doc.text(`S.O.# ${order.orderId || order._id.toString().slice(-8)}`, margin, 240);
+      doc.text('PO# BACH HOA HOUSTON', margin, 255);
+      doc.text('TX', margin, 270);
 
       // Customer pickup info
       doc.fontSize(8);
-      doc.text(`Remarks: From Order # ${order.orderId || order._id.toString().slice(-8)} CUSTOMER PICK UP FRIDAY`, margin, 285);
+      doc.text(`Remarks: From Order # ${order.orderId || order._id.toString().slice(-8)} CUSTOMER PICK UP FRIDAY`, margin, 290);
 
       // Table headers
-      const tableStartY = 315;
+      const tableStartY = 320;
       doc.fontSize(8).font('Helvetica-Bold');
       
       // Draw table header background (no borders)
@@ -203,22 +208,60 @@ const pdfController = {
       doc.moveTo(margin, currentY - 5).lineTo(margin + contentWidth, currentY - 5).stroke();
 
       // Footer information
-      currentY += 30;
+      currentY += 20; // Reduced spacing to fit totals better
       doc.fontSize(10).font('Helvetica');
 
       if (order.Local_address) {
         doc.text(`Address: ${order.Local_address.address || ''}`, margin, currentY);
         doc.text(`${order.Local_address.city || ''} ${order.Local_address.state || ''} ${order.Local_address.zipcode || ''}`, margin, currentY + 15);
+        currentY += 40; // Add space after address
       }
 
-      // Order totals (right side)
-      const totalsX = pageWidth - 200;
-      doc.text(`Subtotal: ${order.total || '0.00'}`, totalsX, currentY);
-      doc.text(`Delivery Fee: ${order.deliveryfee || '0.00'}`, totalsX, currentY + 15);
-      doc.text(`Tip: ${order.Deliverytip || '0.00'}`, totalsX, currentY + 30);
-      doc.text(`Discount: ${order.discount || '0.00'}`, totalsX, currentY + 45);
-      doc.fontSize(12).font('Helvetica-Bold');
-      doc.text(`Total: ${order.total || '0.00'}`, totalsX, currentY + 60);
+      // Order totals (right side) - Updated to match website design
+      const totalsX = pageWidth - 220; // Moved left a bit to fit better
+      
+      // Calculate subtotal from product details
+      let subtotal = 0;
+      order.productDetail.forEach((item) => {
+        subtotal += parseFloat(item.price) * parseInt(item.qty);
+      });
+      
+      // Add totals section with border (no header text)
+      doc.fontSize(10).font('Helvetica-Bold');
+      doc.rect(totalsX - 10, currentY - 5, 200, 120).stroke(); // Increased height back to 120
+      // Remove ORDER TOTALS text
+      currentY += 10; // Reduced spacing
+      
+      doc.fontSize(9).font('Helvetica');
+      doc.text(`Subtotal:`, totalsX, currentY);
+      doc.text(`$${subtotal.toFixed(2)}`, totalsX + 80, currentY);
+      
+      doc.text(`Total Tax:`, totalsX, currentY + 15);
+      doc.text(`$${parseFloat(order.totalTax || 0).toFixed(2)}`, totalsX + 80, currentY + 15);
+      
+      doc.text(`Total Tip:`, totalsX, currentY + 30);
+      doc.text(`$${parseFloat(order.Deliverytip || 0).toFixed(2)}`, totalsX + 80, currentY + 30);
+      
+      doc.text(`Delivery Fee:`, totalsX, currentY + 45);
+      doc.text(`$${parseFloat(order.deliveryfee || 0).toFixed(2)}`, totalsX + 80, currentY + 45);
+      
+      doc.text(`Service Fee:`, totalsX, currentY + 60);
+      doc.text(`$${parseFloat(order.serviceFee || 0).toFixed(2)}`, totalsX + 80, currentY + 60);
+      
+      doc.text(`Discount:`, totalsX, currentY + 75);
+      doc.text(`-$${parseFloat(order.discount || 0).toFixed(2)}`, totalsX + 80, currentY + 75);
+      
+      // Calculate final total
+      const finalTotal = subtotal + 
+                        parseFloat(order.totalTax || 0) + 
+                        parseFloat(order.Deliverytip || 0) + 
+                        parseFloat(order.deliveryfee || 0) + 
+                        parseFloat(order.serviceFee || 0) - 
+                        parseFloat(order.discount || 0);
+      
+      doc.fontSize(11).font('Helvetica-Bold');
+      doc.text(`Total:`, totalsX, currentY + 95);
+      doc.text(`$${finalTotal.toFixed(2)}`, totalsX + 80, currentY + 95);
 
       doc.end();
 
