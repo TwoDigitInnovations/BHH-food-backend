@@ -2614,11 +2614,11 @@ module.exports = {
         const deliveryDate = new Date(
           order.dateOfDelivery
         ).toLocaleDateString();
-        doc
-          .fontSize(12)
-          .fillColor("#2c3e50")
-          .font("Helvetica-Bold")
-          .text(`Pickup/Delivery Date: ${deliveryDate}`, 50, 310); // Moved down from 260 to 310
+        // doc
+        //   .fontSize(12)
+        //   .fillColor("#2c3e50")
+        //   .font("Helvetica-Bold")
+        //   .text(`Pickup/Delivery Date: ${deliveryDate}`, 50, 310); // Moved down from 260 to 310
       }
 
       // Table header with modern styling
@@ -2678,6 +2678,31 @@ module.exports = {
 
         currentY += rowHeight; // ✅ Move down according to actual height
       });
+
+      // Add total row
+      const totalItems = order.productDetail.length;
+      const totalQuantity = order.productDetail.reduce((sum, item) => sum + parseInt(item.qty), 0);
+      
+      // Total row with background
+      drawRoundedRect(50, currentY, 500, 35, 0, "#e8f4f8");
+      
+      doc
+        .fontSize(12)
+        .fillColor("#2c3e50")
+        .font("Helvetica-Bold")
+        .text("Total", 60, currentY + 12)
+        .text(totalQuantity.toString(), 300, currentY + 12)
+        .text(`$${subtotal.toFixed(2)}`, 470, currentY + 12);
+      
+      // Bottom border for total row
+      doc
+        .strokeColor("#dee2e6")
+        .lineWidth(2)
+        .moveTo(50, currentY + 35)
+        .lineTo(550, currentY + 35)
+        .stroke();
+      
+      currentY += 35; // Move down after total row
 
       // Summary section
       const totalsY = currentY + 20;

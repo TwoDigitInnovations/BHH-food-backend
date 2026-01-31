@@ -42,8 +42,7 @@ const pdfController = {
       const margin = 30;
       const contentWidth = pageWidth - (margin * 2);
 
-      // Header Section - Remove logo and add BHH FOOD text
-      // Clear the entire header area first
+     
       doc.rect(0, 0, pageWidth, 120).fill('white');
       
       // Add BHH FOOD header without background (like invoice design)
@@ -57,7 +56,7 @@ const pdfController = {
       const infoBoxX = pageWidth - 220;
       const infoBoxY = 30;
       
-      // Draw invoice info box (increased height)
+      // Draw invoice info box (reduced height)
       doc.rect(infoBoxX, infoBoxY, 180, 140).stroke();
       
       doc.fontSize(12).font('Helvetica-Bold').fillColor('black');
@@ -67,10 +66,10 @@ const pdfController = {
       
       // Add order information in the box
       doc.fontSize(9).font('Helvetica');
-      doc.text(`Invoice #: ${order.orderId || order._id.toString().slice(-8)}`, infoBoxX + 10, infoBoxY + 60);
+      doc.text(`Order ID: ${order.orderId || order._id.toString().slice(-8)}`, infoBoxX + 10, infoBoxY + 60);
       doc.text(`Date: ${new Date(order.createdAt).toLocaleDateString('en-US')}`, infoBoxX + 10, infoBoxY + 75);
-      doc.text(`Time: ${new Date(order.createdAt).toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit'})}`, infoBoxX + 10, infoBoxY + 90);
-      doc.text(`Status: ${order.status || 'Pending'}`, infoBoxX + 10, infoBoxY + 105);
+      // doc.text(`Time: ${new Date(order.createdAt).toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit'})}`, infoBoxX + 10, infoBoxY + 90);
+      // doc.text(`Status: ${order.status || 'Pending'}`, infoBoxX + 10, infoBoxY + 105);
       
       // Determine order type
       let orderType = "Store Pickup";
@@ -78,7 +77,20 @@ const pdfController = {
       if (order.isShipmentDelivery) orderType = "Shipment Delivery";
       if (order.isDriveUp) orderType = "Curbside Pickup";
       
-      doc.text(`Order Type: ${orderType}`, infoBoxX + 10, infoBoxY + 120);
+      // Order Type with orange color (adjusted position after removing time)
+      doc.fillColor('#f38529').font('Helvetica-Bold');
+      doc.text(`Order Type: ${orderType}`, infoBoxX + 10, infoBoxY + 90);
+      
+      // Add dynamic pickup date (adjusted position)
+      doc.fillColor('black').font('Helvetica');
+      if (order.dateOfDelivery) {
+        const pickupDate = new Date(order.dateOfDelivery).toLocaleDateString('en-US', {
+          day: 'numeric',
+          month: 'long', 
+          year: 'numeric'
+        });
+        doc.text(`Pickup Date: ${pickupDate}`, infoBoxX + 10, infoBoxY + 105);
+      }
 
       // Customer details section (left side)
       doc.fontSize(10).font('Helvetica').fillColor('black');
@@ -107,17 +119,17 @@ const pdfController = {
       }
 
       // S.O.# section - moved down to accommodate barcode with proper spacing
-      doc.fontSize(10).font('Helvetica');
-      doc.text(`S.O.# ${order.orderId || order._id.toString().slice(-8)}`, margin, 240);
-      doc.text('PO# BACH HOA HOUSTON', margin, 255);
-      doc.text('TX', margin, 270);
+      // doc.fontSize(10).font('Helvetica');
+      // doc.text(`S.O.# ${order.orderId || order._id.toString().slice(-8)}`, margin, 240);
+      // doc.text('PO# BACH HOA HOUSTON', margin, 255);
+      // doc.text('TX', margin, 270);
 
       // Customer pickup info
       doc.fontSize(8);
-      doc.text(`Remarks: From Order # ${order.orderId || order._id.toString().slice(-8)} CUSTOMER PICK UP FRIDAY`, margin, 290);
+      // doc.text(`Remarks: From Order # ${order.orderId || order._id.toString().slice(-8)} CUSTOMER PICK UP FRIDAY`, margin, 290);
 
       // Table headers
-      const tableStartY = 320;
+      const tableStartY = 260;
       doc.fontSize(8).font('Helvetica-Bold');
       
       // Draw table header background (no borders)
@@ -204,8 +216,68 @@ const pdfController = {
         currentY += rowHeight;
       });
 
+      // Add total row at the end of table
+      const totalProducts = order.productDetail.length;
+      let totalPrice = 0;
+      let totalQuantity = 0;
+      
+      // Calculate totals
+      order.productDetail.forEach((item) => {
+        totalPrice += parseFloat(item.price || item.total || 0) * parseInt(item.qty || 1);
+        totalQuantity += parseInt(item.qty || 1);
+      });
+
+      // Draw total row with background
+      const totalRowHeight = 25;
+      // Remove the table row background - we'll put totals below table instead
+      // doc.rect(margin, currentY - 5, contentWidth, totalRowHeight).fill('#e8f4f8');
+      
+      doc.fontSize(9).font('Helvetica-Bold').fillColor('black');
+      
+      // Total quantity in REL QTY column
+      // doc.text(`${totalQuantity}`, margin + 120, currentY + 10, {
+      //   width: 70,
+      //   align: 'left'
+      // });
+      
+      // "TOTAL" text in ITEM - UOM column
+      // doc.text('TOTAL', margin + 280, currentY + 10, {
+      //   width: 110,
+      //   align: 'left'
+      // });
+      
+      // Total price in PRICE column
+      // doc.text(`$${totalPrice.toFixed(2)}`, margin + 400, currentY + 10);
+      
+      // Total products count in BATCH# column
+      // doc.text(`${totalProducts} items`, margin + 460, currentY + 10);
+      
+      // currentY += totalRowHeight;
+
       // Draw bottom border of table
       doc.moveTo(margin, currentY - 5).lineTo(margin + contentWidth, currentY - 5).stroke();
+
+      // Add total row in table format (before bottom border)
+      // Use existing totalRowHeight variable, don't redeclare
+      
+      doc.fontSize(9).font('Helvetica-Bold').fillColor('black');
+      
+      // "Total" text in ITEM - UOM column
+      doc.text('Total', margin + 280, currentY + 5, {
+        width: 110,
+        align: 'left'
+      });
+      
+      // Total quantity in REL QTY column
+      doc.text(`${totalQuantity}`, margin + 120, currentY + 5, {
+        width: 70,
+        align: 'left'
+      });
+      
+      // Total price in PRICE column (with $ sign)
+      doc.text(`$${totalPrice.toFixed(2)}`, margin + 400, currentY + 5);
+      
+      currentY += totalRowHeight;
 
       // Footer information
       currentY += 20; // Reduced spacing to fit totals better
@@ -226,9 +298,9 @@ const pdfController = {
         subtotal += parseFloat(item.price) * parseInt(item.qty);
       });
       
-      // Add totals section with border (no header text)
+     
       doc.fontSize(10).font('Helvetica-Bold');
-      doc.rect(totalsX - 10, currentY - 5, 200, 120).stroke(); // Increased height back to 120
+      doc.rect(totalsX - 10, currentY - 5, 200, 130).stroke(); // Increased height back to 120
       // Remove ORDER TOTALS text
       currentY += 10; // Reduced spacing
       
