@@ -56,40 +56,53 @@ const pdfController = {
       const infoBoxX = pageWidth - 220;
       const infoBoxY = 30;
       
-      // Draw invoice info box (reduced height)
-      doc.rect(infoBoxX, infoBoxY, 180, 140).stroke();
+      // Remove invoice info box
+      // doc.rect(infoBoxX, infoBoxY, 180, 140).stroke();
       
-      doc.fontSize(12).font('Helvetica-Bold').fillColor('black');
-      doc.text('Page 1 of 1', infoBoxX + 10, infoBoxY + 10);
-      doc.text('PICK LIST', infoBoxX + 10, infoBoxY + 25);
-      doc.fontSize(10).font('Helvetica').text('Grocery', infoBoxX + 10, infoBoxY + 40);
+      // Remove Page 1 of 1 and PICK LIST text
+      // doc.fontSize(12).font('Helvetica-Bold').fillColor('black');
+      // doc.text('Page 1 of 1', infoBoxX + 10, infoBoxY + 10);
+      // doc.text('PICK LIST', infoBoxX + 10, infoBoxY + 25);
+      // doc.fontSize(10).font('Helvetica').text('Grocery', infoBoxX + 10, infoBoxY + 40);
       
-      // Add order information in the box
-      doc.fontSize(9).font('Helvetica');
-      doc.text(`Order ID: ${order.orderId || order._id.toString().slice(-8)}`, infoBoxX + 10, infoBoxY + 60);
-      doc.text(`Date: ${new Date(order.createdAt).toLocaleDateString('en-US')}`, infoBoxX + 10, infoBoxY + 75);
-      // doc.text(`Time: ${new Date(order.createdAt).toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit'})}`, infoBoxX + 10, infoBoxY + 90);
-      // doc.text(`Status: ${order.status || 'Pending'}`, infoBoxX + 10, infoBoxY + 105);
+      // Simple order information layout (no box) - Order: Type → ID → Date → Pickup Date
+      const infoStartX = pageWidth - 220;
+      const infoStartY = 35;
       
-      // Determine order type
+      // Determine order type first
       let orderType = "Store Pickup";
       if (order.isLocalDelivery) orderType = "Local Delivery";
       if (order.isShipmentDelivery) orderType = "Shipment Delivery";
       if (order.isDriveUp) orderType = "Curbside Pickup";
       
-      // Order Type with orange color (adjusted position after removing time)
-      doc.fillColor('#f38529').font('Helvetica-Bold');
-      doc.text(`Order Type: ${orderType}`, infoBoxX + 10, infoBoxY + 90);
+      doc.fontSize(10).font('Helvetica');
       
-      // Add dynamic pickup date (adjusted position)
+      // 1. Order Type (first, with orange color)
+      doc.fillColor('#f38529').font('Helvetica-Bold');
+      doc.text(`Order Type: ${orderType}`, infoStartX, infoStartY);
+      
+      // 2. Order ID (second)
       doc.fillColor('black').font('Helvetica');
+      doc.text(`Order ID: ${order.orderId || order._id.toString().slice(-8)}`, infoStartX, infoStartY + 15);
+      
+      // 3. Order Date with time (third)
+      const orderDateTime = new Date(order.createdAt);
+      const dateStr = orderDateTime.toLocaleDateString('en-US');
+      const timeStr = orderDateTime.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      });
+      doc.text(`Order Date: ${dateStr} ${timeStr}`, infoStartX, infoStartY + 30);
+      
+      // 4. Pickup Date (fourth, if exists)
       if (order.dateOfDelivery) {
         const pickupDate = new Date(order.dateOfDelivery).toLocaleDateString('en-US', {
           day: 'numeric',
           month: 'long', 
           year: 'numeric'
         });
-        doc.text(`Pickup Date: ${pickupDate}`, infoBoxX + 10, infoBoxY + 105);
+        doc.text(`Pickup Date: ${pickupDate}`, infoStartX, infoStartY + 45);
       }
 
       // Customer details section (left side)
@@ -206,8 +219,8 @@ const pdfController = {
           align: 'left'
         });
 
-        // Price
-        doc.text(`${item.price || item.total}`, margin + 400, currentY + 5);
+        // Price with $ sign
+        doc.text(`$${item.price || item.total}`, margin + 400, currentY + 5);
 
         // Batch number
         const batchNumber = product?.batchNumber || order.orderId || order._id.toString().slice(-8);
@@ -258,23 +271,19 @@ const pdfController = {
       doc.moveTo(margin, currentY - 5).lineTo(margin + contentWidth, currentY - 5).stroke();
 
       // Add total row in table format (before bottom border)
-      // Use existing totalRowHeight variable, don't redeclare
-      
+      // Fix total row alignment: Total → Quantity → Total Price
       doc.fontSize(9).font('Helvetica-Bold').fillColor('black');
       
-      // "Total" text in ITEM - UOM column
-      doc.text('Total', margin + 280, currentY + 5, {
-        width: 110,
-        align: 'left'
-      });
+      // "Total" text in CHECKED column (first column)
+      doc.text('Total', margin + 5, currentY + 5);
       
-      // Total quantity in REL QTY column
+      // Total quantity in REL QTY column (second)
       doc.text(`${totalQuantity}`, margin + 120, currentY + 5, {
         width: 70,
         align: 'left'
       });
       
-      // Total price in PRICE column (with $ sign)
+      // Total price in PRICE column (third, with $ sign)
       doc.text(`$${totalPrice.toFixed(2)}`, margin + 400, currentY + 5);
       
       currentY += totalRowHeight;

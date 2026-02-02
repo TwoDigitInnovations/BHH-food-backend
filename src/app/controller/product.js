@@ -2516,37 +2516,86 @@ module.exports = {
         .font("Helvetica-Bold")
         .text("INVOICE", 400, 35, { align: "right" });
 
-      // Invoice details box
-      drawRoundedRect(370, 75, 180, 90, 5, "#f8f9fa");
+      // Invoice details box - moved down to create distance from .com
+      drawRoundedRect(370, 85, 180, 90, 5, "#f8f9fa");
       doc
         .strokeColor("#dee2e6")
         .lineWidth(1)
-        .roundedRect(370, 75, 180, 90, 5)
+        .roundedRect(370, 85, 180, 90, 5)
         .stroke();
 
+      // Updated layout to match requirements - Adjusted Y positions for moved box
+      // 1. Order Type on top (with orange color) - Adjusted positioning
       doc
         .fontSize(10)
-        .fillColor("#2c3e50")
+        .fillColor("#f38529")
         .font("Helvetica-Bold")
-        .text("Invoice #:", 385, 85)
-        .text("Date:", 385, 100)
-        .text("Time:", 385, 115)
-        .text("Status:", 385, 130)
-        .text("Order Type:", 385, 145);
-
-      doc
-        .font("Helvetica")
-        .text(order.orderId, 440, 85)
-        .text(order.orderDate, 450, 100)
-        .text(order.orderTime, 450, 115)
-        .text(order.status, 450, 130);
-
+        .text("Order Type:", 385, 95);
+      
       let orderType = "Store Pickup";
       if (order.isLocalDelivery) orderType = "Local Delivery";
       if (order.isShipmentDelivery) orderType = "Shipment Delivery";
       if (order.isDriveUp) orderType = "Curbside Pickup";
+      
+      doc.fillColor("#f38529").text(orderType, 450, 95);
 
-      doc.text(orderType, 450, 145);
+      // 2. Invoice # (second)
+      doc
+        .fontSize(10)
+        .fillColor("#2c3e50")
+        .font("Helvetica-Bold")
+        .text("Invoice #:", 385, 115);
+      
+      doc
+        .font("Helvetica")
+        .text(order.orderId, 440, 115);
+
+      // 3. Date and Time on same line (third) - with proper AM/PM formatting
+      doc
+        .fontSize(10)
+        .fillColor("#2c3e50")
+        .font("Helvetica-Bold")
+        .text("Order Date:", 385, 135);
+      
+      // Format time with AM/PM if createdAt is available, otherwise use existing orderTime
+      let formattedDateTime;
+      if (order.createdAt) {
+        const orderDateTime = new Date(order.createdAt);
+        const dateStr = orderDateTime.toLocaleDateString('en-US');
+        const timeStr = orderDateTime.toLocaleTimeString('en-US', {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: true
+        });
+        formattedDateTime = `${dateStr} ${timeStr}`;
+      } else {
+        formattedDateTime = `${order.orderDate} ${order.orderTime}`;
+      }
+      
+      doc
+        .font("Helvetica")
+        .text(formattedDateTime, 450, 135);
+
+      // 4. Status removed (as requested)
+      
+      // 5. Pickup Date (fourth, if exists)
+      if (order.dateOfDelivery) {
+        const deliveryDate = new Date(order.dateOfDelivery).toLocaleDateString('en-US', {
+          day: 'numeric',
+          month: 'long',
+          year: 'numeric'
+        });
+        
+        doc
+          .fontSize(10)
+          .fillColor("#2c3e50")
+          .font("Helvetica-Bold")
+          .text("Pickup Date:", 385, 155);
+        
+        doc
+          .font("Helvetica")
+          .text(deliveryDate, 450, 155);
+      }
 
       // Add barcode before BILL TO section
       const barcodeY = 150;
