@@ -2561,8 +2561,18 @@ module.exports = {
       let formattedDateTime;
       if (order.createdAt) {
         const orderDateTime = new Date(order.createdAt);
-        const dateStr = orderDateTime.toLocaleDateString('en-US');
+        
+        // Get user's timezone from request or use Houston's timezone as default
+        const userTimezone = req.body.timezone || 'America/Chicago'; // Houston, TX is in Central Time
+        
+        const dateStr = orderDateTime.toLocaleDateString('en-US', {
+          timeZone: userTimezone,
+          month: '2-digit',
+          day: '2-digit',
+          year: 'numeric'
+        });
         const timeStr = orderDateTime.toLocaleTimeString('en-US', {
+          timeZone: userTimezone,
           hour: '2-digit',
           minute: '2-digit',
           hour12: true
@@ -2574,13 +2584,15 @@ module.exports = {
       
       doc
         .font("Helvetica")
-        .text(formattedDateTime, 450, 135);
+        .text(formattedDateTime, 450, 135, { width: 170, align: 'left' });
 
       // 4. Status removed (as requested)
       
       // 5. Pickup Date (fourth, if exists)
       if (order.dateOfDelivery) {
+        const userTimezone = req.body.timezone || 'America/Chicago'; // Use Houston's timezone as default
         const deliveryDate = new Date(order.dateOfDelivery).toLocaleDateString('en-US', {
+          timeZone: userTimezone,
           day: 'numeric',
           month: 'long',
           year: 'numeric'
@@ -2594,7 +2606,7 @@ module.exports = {
         
         doc
           .font("Helvetica")
-          .text(deliveryDate, 450, 155);
+          .text(deliveryDate, 450, 155, { width: 170, align: 'left' });
       }
 
       // Add barcode before BILL TO section
@@ -2660,9 +2672,12 @@ module.exports = {
 
       // Delivery date if available
       if (order.dateOfDelivery) {
+        const userTimezone = req.body.timezone || 'America/Chicago'; // Use Houston's timezone
         const deliveryDate = new Date(
           order.dateOfDelivery
-        ).toLocaleDateString();
+        ).toLocaleDateString('en-US', {
+          timeZone: userTimezone
+        });
         // doc
         //   .fontSize(12)
         //   .fillColor("#2c3e50")

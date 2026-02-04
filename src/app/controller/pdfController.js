@@ -87,8 +87,11 @@ const pdfController = {
       
       // 3. Order Date with time (third)
       const orderDateTime = new Date(order.createdAt);
-      const dateStr = orderDateTime.toLocaleDateString('en-US');
+      const dateStr = orderDateTime.toLocaleDateString('en-US', {
+        timeZone: 'America/Chicago' // Houston, TX is in Central Time
+      });
       const timeStr = orderDateTime.toLocaleTimeString('en-US', {
+        timeZone: 'America/Chicago', // Houston, TX is in Central Time
         hour: '2-digit',
         minute: '2-digit',
         hour12: true
@@ -110,9 +113,37 @@ const pdfController = {
       doc.text(`Customer: ${user.username || 'Customer Name'}`, margin, 90);
       doc.text(`Phone: ${user.number || 'N/A'}`, margin, 105);
       doc.text(`Email: ${user.email || 'N/A'}`, margin, 120);
+      
+      // Add address after email
+      let addressY = 135;
+      if (order.Local_address) {
+        const address = order.Local_address.address || '';
+        const cityStateZip = `${order.Local_address.city || ''} ${order.Local_address.state || ''} ${order.Local_address.zipcode || ''}`.trim();
+        
+        if (address) {
+          doc.text(`Address: ${address}`, margin, addressY);
+          addressY += 15;
+        }
+        if (cityStateZip) {
+          doc.text(`${cityStateZip}`, margin, addressY);
+          addressY += 15;
+        }
+      } else if (order.Shipment_address) {
+        const address = order.Shipment_address.address || '';
+        const cityStateZip = `${order.Shipment_address.city || ''} ${order.Shipment_address.state || ''} ${order.Shipment_address.zipcode || ''}`.trim();
+        
+        if (address) {
+          doc.text(`Address: ${address}`, margin, addressY);
+          addressY += 15;
+        }
+        if (cityStateZip) {
+          doc.text(`${cityStateZip}`, margin, addressY);
+          addressY += 15;
+        }
+      }
 
-      // Add barcode after customer details
-      const barcodeY = 160;
+      // Add barcode after customer details (adjust position based on address)
+      const barcodeY = Math.max(160, addressY + 10); // Ensure barcode is below address
       try {
         const barcodeLib = require('bwip-js');
         const barcodeBuffer = await barcodeLib.toBuffer({
@@ -291,12 +322,6 @@ const pdfController = {
       // Footer information
       currentY += 20; // Reduced spacing to fit totals better
       doc.fontSize(10).font('Helvetica');
-
-      if (order.Local_address) {
-        doc.text(`Address: ${order.Local_address.address || ''}`, margin, currentY);
-        doc.text(`${order.Local_address.city || ''} ${order.Local_address.state || ''} ${order.Local_address.zipcode || ''}`, margin, currentY + 15);
-        currentY += 40; // Add space after address
-      }
 
       // Order totals (right side) - Updated to match website design
       const totalsX = pageWidth - 220; // Moved left a bit to fit better
